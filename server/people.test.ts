@@ -172,3 +172,26 @@ describe("voice garden example", () => {
     expect(rows.find((u) => u.speaker_label === "S0")!.person_id).toBeNull()
   })
 })
+
+describe("mind palace xr example", () => {
+  test("serves the built app under /palace/ and refuses paths outside it", async () => {
+    const {people} = setup()
+    const go = async (path: string) => {
+      const req = new Request(`http://localhost${path}`)
+      return (await appRoute(req, new URL(req.url), people))!
+    }
+    expect((await go("/palace")).status).toBe(302)
+    const page = await go("/palace/")
+    expect([200, 503]).toContain(page.status) // 503 until `bun run build:palace`
+    if (page.status === 200) expect(await page.text()).toContain("Mind Palace")
+    expect((await go("/palace/..%2f..%2fserver%2fpeople.ts")).status).toBe(404)
+  })
+
+  test("conversations carry that person's transcript", () => {
+    const {people} = setup()
+    const id = people.create({name: "Maya", voiceConsent: true, runId: "r1", speakerLabel: "S1"})
+    expect(people.get(id)!.conversations[0].transcript).toBe(
+      "I design onboarding for a voice app, mostly tutorials. Onboarding should start with a short voice tutorial.",
+    )
+  })
+})

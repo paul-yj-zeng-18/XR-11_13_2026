@@ -161,6 +161,7 @@
       h("div", {style: {flex: "1"}}),
       h("a", {class: "btn", href: "#/how"}, "Get started"),
       h("a", {class: "btn ghost", href: "#/garden"}, svg(ICON.tree, "currentColor", 20), "Walk the Voice Garden"),
+      h("a", {class: "btn ghost", href: "/palace/"}, svg(ICON.home, "currentColor", 20), "Enter the Mind Palace in XR"),
       h("a", {class: "btn ghost", href: "#/people", style: {border: "0"}}, "I’ve set this up before"));
   }
 
@@ -202,7 +203,9 @@
     put(screen, 
       h("div", {class: "between", style: {alignItems: "flex-end"}},
         h("div", null, h("div", {class: "eyebrow"}, "Picavoice"), h("h1", null, "Mind Palace")),
-        h("a", {class: "chip", href: "#/garden", style: {display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none", color: "var(--ink)"}}, svg(ICON.tree, "currentColor", 16), "Garden view")),
+        h("div", {style: {display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end"}},
+          h("a", {class: "chip", href: "/palace/", style: {display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none", color: "var(--ink)"}}, svg(ICON.home, "currentColor", 16), "XR rooms"),
+          h("a", {class: "chip", href: "#/garden", style: {display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none", color: "var(--ink)"}}, svg(ICON.tree, "currentColor", 16), "Garden"))),
       h("p", {class: "muted small"}, plural(people.length, "person").replace("persons", "people") + " in your Mind Palace"),
       h("label", {class: "search"}, svg(ICON.search, "#a9aeb8", 18), h("span", {class: "visually-hidden"}, "Search people"),
         h("input", {type: "search", placeholder: "Search names, topics, where you met", oninput: (e) => { q = e.target.value; render(); }})),

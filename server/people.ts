@@ -29,7 +29,7 @@ export interface PersonSummary {
 
 export interface PersonDetail extends PersonSummary {
   quotes: Array<{text: string; run_id: string; t_start: number}>
-  conversations: Array<{run_id: string; started_at: number; lines: number}>
+  conversations: Array<{run_id: string; started_at: number; lines: number; transcript: string | null}>
 }
 
 export interface LiveSpeaker {
@@ -101,7 +101,9 @@ export class People {
     const conversations = this.db
       .query(
         `SELECT s.run_id, s.started_at,
-           (SELECT COUNT(*) FROM utterances u WHERE u.run_id = s.run_id AND u.speaker_label = a.speaker_label) AS lines
+           (SELECT COUNT(*) FROM utterances u WHERE u.run_id = s.run_id AND u.speaker_label = a.speaker_label) AS lines,
+           (SELECT group_concat(text, ' ') FROM (SELECT u.text FROM utterances u
+              WHERE u.run_id = s.run_id AND u.speaker_label = a.speaker_label ORDER BY u.id)) AS transcript
          FROM speaker_assignments a JOIN sessions s ON s.run_id = a.run_id
          WHERE a.person_id = ? ORDER BY s.started_at DESC`,
       )

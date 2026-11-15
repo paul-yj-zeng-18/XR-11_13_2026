@@ -3,7 +3,8 @@
  *
  *   GET    /app                  the app (server/app/index.html), open it on the phone
  *   GET    /app/<file>           its static files (server/app/)
- *   GET    /garden               Voice Garden, the example project (examples/voice-garden/)
+ *   GET    /garden               Voice Garden example (examples/voice-garden/)
+ *   GET    /palace/              Mind Palace XR example, built (examples/mind-palace-xr/dist, bun run build:palace)
  *   GET    /api/people           everyone in the Mind Palace
  *   GET    /api/people/:id       one person, with quotes and conversations
  *   POST   /api/people           {name, role?, metAt?, notes?, voiceConsent, runId?, speakerLabel?}
@@ -17,6 +18,7 @@ import {toGardenExport} from "./garden"
 import {People, READY_SECONDS} from "./people"
 
 const APP_DIR = join(import.meta.dir, "app")
+const PALACE_DIR = join(import.meta.dir, "..", "examples", "mind-palace-xr", "dist")
 const GARDEN_PAGE = join(import.meta.dir, "..", "examples", "voice-garden", "index.html")
 
 const json = (body: unknown, status = 200): Response =>
@@ -27,6 +29,20 @@ const TYPES: Record<string, string> = {html: "text/html; charset=utf-8", jpg: "i
 export async function appRoute(req: Request, url: URL, people: People): Promise<Response | null> {
   const path = url.pathname.replace(/\/+$/, "") || "/"
 
+  if (req.method === "GET" && (path === "/palace" || path.startsWith("/palace/"))) {
+    // Keep the trailing slash so the build's relative asset paths resolve.
+    if (url.pathname === "/palace") return Response.redirect(url.origin + "/palace/", 302)
+    const rel = url.pathname === "/palace/" ? "index.html" : decodeURIComponent(url.pathname.slice("/palace/".length))
+    const file = normalize(join(PALACE_DIR, rel))
+    if (!file.startsWith(PALACE_DIR + "/")) return new Response("not found", {status: 404})
+    const f = Bun.file(file)
+    if (!(await f.exists())) {
+      if (rel === "index.html") return new Response("Mind Palace XR isn't built yet. Run: bun run build:palace\n", {status: 503})
+      return new Response("not found", {status: 404})
+    }
+    const ext = rel.split(".").pop() ?? ""
+    return new Response(f, {headers: {"content-type": TYPES[ext] ?? "application/octet-stream", "cache-control": "no-store"}})
+  }
   if (req.method === "GET" && path === "/garden") {
     return new Response(Bun.file(GARDEN_PAGE), {headers: {"content-type": "text/html; charset=utf-8", "cache-control": "no-store"}})
   }

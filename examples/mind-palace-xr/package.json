@@ -1,0 +1,23 @@
+{
+  "name": "mind-palace-xr",
+  "version": "0.4.0",
+  "description": "A WebXR memory palace: every person you meet becomes a room, generated from their voiceprint.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "vite --mode https",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  },
+  "license": "MIT"
+}

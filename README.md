@@ -4,15 +4,18 @@ At a crowded event you meet dozens of people and forget most of them by the next
 morning. **Picavoice** listens through Mentra Live glasses, works out who is
 speaking, and, with each person's spoken OK, keeps a **Mind Palace**: who they
 are, where you met, and what they said. When they speak again, your phone shows
-who it is and what they told you last time. **Voice Garden**, the example
-project, turns the same people into trees that grow as they talk and stand beside
-their heads in a webcam AR mirror.
+who it is and what they told you last time. Two example projects show the same
+people in XR: **Mind Palace XR** gives each person a WebXR room, with what they
+told you floating as objects and your conversations on a timeline wall, and
+**Voice Garden** grows each person into a tree beside their head in a webcam AR
+mirror.
 
 ```
 Mentra Live glasses ─► phone miniapp ─► Mac server (bun run ingest)
   mics, speaker          raw PCM over      ├─ Deepgram nova-3: transcript + speaker labels (S0, S1, …)
                          HTTP              ├─ SQLite: sessions, utterances, people, consent
                                            ├─ /app     Picavoice: Live · Mind Palace · profiles · consent
+                                           ├─ /palace/ Mind Palace XR: a WebXR room per person, facts + timeline
                                            ├─ /garden  Voice Garden: a tree per person, grows as they talk
                                            └─ /dashboard  raw live transcript
 XR-Voice-Profiles/ (Python): names speakers across conversations from saved voiceprints
@@ -22,17 +25,19 @@ XR-Voice-Profiles/ (Python): names speakers across conversations from saved voic
 | --- | --- | --- |
 | Glasses → phone → Mac audio, speaker-labelled transcript | `src/`, `server/ingest.ts`, `server/deepgram.ts` | Working |
 | Picavoice app: Live, Mind Palace, profiles, consent, delete | `server/app/`, `server/people.ts` | Working |
+| Mind Palace XR example (by Ibrahim Kamran, MIT) | `examples/mind-palace-xr/` | Working |
 | Voice Garden example (based on Voiceprint Garden AR by Ibrahim Kamran) | `examples/voice-garden/` | Working |
 | Recognise a returning voice automatically | `XR-Voice-Profiles/` | Prototype |
 | Spoken replies through the glasses' speaker | `session.speaker.speak` | Next |
 
-**Demo without glasses:** `bun install`, `bun run ingest`, then `bun run seed --names` or
-`bun run replay <recording.m4a>`. Open `http://<mac-ip>:3100/app` on a phone and
-`http://localhost:3100/garden` on the Mac.
+**Demo without glasses:** `bun install`, `bun run build:palace` (once), `bun run ingest`,
+then `bun run seed --names` or `bun run replay <recording.m4a>`. Open
+`http://<mac-ip>:3100/app` on a phone, and `http://localhost:3100/palace/` and
+`http://localhost:3100/garden` in Chrome on the Mac.
 
 **Consent and privacy:** nothing is linked to a person until they say yes; "Name
 only" people are never matched by voice; deleting someone removes their profile,
-voice links, transcript lines and Voice Garden tree. Everything stays on the Mac.
+voice links, transcript lines, XR room and Voice Garden tree. Everything stays on the Mac.
 
 ---
 
@@ -262,6 +267,15 @@ Deleting a person removes their profile, voice links and the lines they said.
 Not yet: recognising a voice automatically in a new conversation. Speaker labels
 reset each session, so that needs voice embeddings in the `voiceprints` table.
 
+**Mind Palace XR (example project).** Run `bun run build:palace` once, then open
+`/palace/` from the same server. Everyone who agreed to a voice profile gets a
+room (people saved as "Name only" don't); their Picavoice conversations line the
+timeline wall, and new lines from the glasses are added live, with facts like
+"I'm building…" appearing as objects in their room. Deleting someone in Picavoice
+removes their room. For a Quest, see `examples/mind-palace-xr/README.md`
+(`npm run dev:https`). By Ibrahim Kamran (MIT); the Picavoice bridge is
+`examples/mind-palace-xr/src/picavoice/bridge.js`, started from one line in `src/main.js`.
+
 **Voice Garden (example project).** Open `/garden` from the same server. Everyone
 in the Mind Palace is planted as a tree and kept in sync; what they say through the
 glasses grows their tree and floats their words up from it; deleting someone in
@@ -272,7 +286,7 @@ by Ibrahim Kamran; the Picavoice bridge is the marked block at the end of its sc
 `GET /api/garden.json` is also importable into the hosted original.
 
 API: `GET /api/people`, `GET /api/people/:id`, `POST /api/people`,
-`DELETE /api/people/:id`, `POST /api/assign`, `GET /api/live`, `GET /api/garden.json`,
+`DELETE /api/people/:id`, `POST /api/assign`, `GET /api/live`, `GET /api/garden.json`, `GET /palace/`,
 `GET /api/sessions`, `GET /api/sessions/:runId/utterances?after=N`.
 
 ## Verification checklist
@@ -350,6 +364,7 @@ fieldassist/
 ├── server/people.ts          # Mind Palace: people, consent, speaker-label links, live speakers
 ├── server/app-routes.ts      # GET /app (Picavoice phone app) + /api/people, /api/assign, /api/live, /api/garden.json
 ├── server/garden.ts          # people as Voice Garden trees (/api/garden.json)
+├── examples/mind-palace-xr/  # Mind Palace XR example (Vite + Three.js), built to dist/ and served at /palace/
 ├── examples/voice-garden/    # Voice Garden example, served at /garden (based on Voiceprint Garden AR, Ibrahim Kamran)
 ├── server/app/               # the Picavoice app page and its photo
 ├── server/dashboard.ts       # GET /dashboard (live transcript) + /api/sessions

@@ -10,7 +10,8 @@
     "ingest": "bun run server/ingest.ts",
     "test": "bun test",
     "seed": "bun run scripts/seed-demo.ts",
-    "replay": "bun run scripts/replay-audio.ts"
+    "replay": "bun run scripts/replay-audio.ts",
+    "build:palace": "npm --prefix examples/mind-palace-xr ci && npm --prefix examples/mind-palace-xr run build"
   },
   "dependencies": {
     "@mentra/miniapp": "3.4.0",

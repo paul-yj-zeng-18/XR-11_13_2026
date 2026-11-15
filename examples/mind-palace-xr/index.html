@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mind Palace XR - every person you meet becomes a room" />
+    <title>Mind Palace XR</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="hud">
+      <header class="topbar">
+        <div class="brand">◈ Mind Palace <span>XR</span></div>
+        <div id="status" class="status">Loading…</div>
+        <div class="topbar-actions">
+          <button id="btn-passthrough" class="ghost" title="Overlay the palace on your webcam feed">Passthrough: off</button>
+          <button id="btn-lobby" class="ghost">Lobby</button>
+          <button id="btn-help" class="ghost" title="Controls (H)">?</button>
+        </div>
+      </header>
+
+      <aside id="panel" class="panel">
+        <nav class="tabs">
+          <button data-tab="encounter" class="active">Encounter</button>
+          <button data-tab="person">Person</button>
+          <button data-tab="palace">Palace</button>
+        </nav>
+
+        <!-- ENCOUNTER -->
+        <section id="tab-encounter" class="tab active">
+          <div class="step active" data-step="idle">
+            <p>Meet someone new, or let the palace recognise a returning voice.</p>
+            <button id="btn-start" class="primary big">🎙 Start encounter</button>
+            <p class="hint" id="speech-support"></p>
+          </div>
+
+          <div class="step" data-step="identify">
+            <p><b>Listening for a voiceprint…</b><br />Ask them to introduce themselves: <i>“Hi, I'm …”</i></p>
+            <canvas id="meter" width="300" height="56"></canvas>
+            <div class="progress"><div id="capture-progress"></div></div>
+            <button class="ghost cancel-btn">Cancel</button>
+          </div>
+
+          <div class="step" data-step="recognized">
+            <p>This sounds like <b id="match-name"></b> <span class="pill" id="match-score"></span></p>
+            <div class="row">
+              <button id="btn-match-yes" class="primary">Yes, that's them</button>
+              <button id="btn-match-no">No, someone new</button>
+            </div>
+            <ul id="match-debug" class="hint small-list"></ul>
+          </div>
+
+          <div class="step" data-step="consent">
+            <p class="hint">New voice. Read this to them before saving anything:</p>
+            <blockquote id="consent-script"></blockquote>
+            <p class="hint">They can answer out loud (“yes” / “no”), or tap a button.</p>
+            <div class="row">
+              <button id="btn-consent-yes" class="primary">They consent</button>
+              <button id="btn-consent-no">They decline</button>
+            </div>
+            <ul class="hint small-list" id="match-debug-2"></ul>
+          </div>
+
+          <div class="step" data-step="context">
+            <form id="context-form" autocomplete="off">
+              <label>Name <input name="name" required placeholder="Their name" /></label>
+              <label>Where <input name="where" placeholder="e.g. HackIllinois, Siebel Center" /></label>
+              <label>How we met <input name="howMet" placeholder="e.g. same table at the opening talk" /></label>
+              <button class="primary" type="submit">Start conversation</button>
+            </form>
+          </div>
+
+          <div class="step" data-step="conversation">
+            <p><span class="rec-dot"></span><b>Taking notes</b>. Facts appear as objects in the room.</p>
+            <ul id="live-facts" class="fact-list"></ul>
+            <form id="note-form" class="inline-form" autocomplete="off">
+              <input name="note" placeholder="Type a note, e.g. “I work at Google”" />
+              <button>Add</button>
+            </form>
+            <button id="btn-end" class="primary danger">End conversation</button>
+          </div>
+
+          <div class="step" data-step="ephemeral">
+            <p><b>Ephemeral mode.</b> They declined, so nothing is saved, not even the voiceprint. The transcript below is shown live only.</p>
+            <button class="cancel-btn">Done</button>
+          </div>
+        </section>
+
+        <!-- PERSON -->
+        <section id="tab-person" class="tab">
+          <div id="person-empty">
+            <p>Walk into someone's room (or pick one in the Palace tab) to see their profile.</p>
+          </div>
+          <div id="person-detail" hidden>
+            <h2 id="person-name"></h2>
+            <p class="hint" id="person-consent"></p>
+
+            <h3>Facts</h3>
+            <ul id="person-facts" class="fact-list"></ul>
+            <form id="fact-form" class="inline-form" autocomplete="off">
+              <select name="type"></select>
+              <input name="text" placeholder="Add a fact" required />
+              <button>Add</button>
+            </form>
+
+            <h3>Conversations</h3>
+            <ol id="person-convos" class="convo-list"></ol>
+
+            <h3>Customise room</h3>
+            <label>Hue shift <input type="range" id="cust-hue" min="-0.5" max="0.5" step="0.01" /></label>
+            <label>Room size <input type="range" id="cust-scale" min="0.7" max="1.5" step="0.05" /></label>
+            <label>Brightness <input type="range" id="cust-light" min="0.3" max="2" step="0.05" /></label>
+            <label>
+              Wallpaper
+              <select id="cust-pattern">
+                <option value="voice">Voice waves</option>
+                <option value="grid">Grid</option>
+                <option value="plain">Plain</option>
+              </select>
+            </label>
+            <div class="row">
+              <button id="btn-reset-layout">Reset object layout</button>
+              <button id="btn-revoke" class="danger">Revoke consent &amp; delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PALACE -->
+        <section id="tab-palace" class="tab">
+          <h3>People</h3>
+          <ul id="people-list" class="people-list"></ul>
+
+          <h3>Settings</h3>
+          <label>Match threshold <span id="threshold-val" class="pill"></span>
+            <input type="range" id="set-threshold" min="0.5" max="0.98" step="0.01" />
+          </label>
+          <label>Voiceprint length (s) <span id="seconds-val" class="pill"></span>
+            <input type="range" id="set-seconds" min="3" max="10" step="1" />
+          </label>
+          <div class="row">
+            <button id="btn-demo">Load demo people</button>
+            <button id="btn-export">Export</button>
+            <label class="button-like">Import<input type="file" id="file-import" accept="application/json" hidden /></label>
+          </div>
+          <button id="btn-clear" class="danger">Erase everything</button>
+          <p class="hint">All data stays in this browser (localStorage). No audio is ever stored.</p>
+        </section>
+      </aside>
+
+      <div id="transcript" class="transcript"><span id="transcript-final"></span><span id="transcript-interim"></span></div>
+      <div id="selection-hint" class="selection-hint" hidden></div>
+      <div id="crosshair"></div>
+      <div id="toasts"></div>
+
+      <div id="help" class="modal" hidden>
+        <div class="modal-card">
+          <button class="modal-close icon">✕</button>
+          <h2>Controls</h2>
+          <div class="cols">
+            <div>
+              <h3>Move (headset sim)</h3>
+              <ul>
+                <li><kbd>W A S D</kbd> walk</li>
+                <li><kbd>←</kbd> <kbd>→</kbd> turn &nbsp; <kbd>↑</kbd> <kbd>↓</kbd> walk</li>
+                <li><kbd>Drag</kbd> look around</li>
+                <li><kbd>Shift</kbd> sprint</li>
+                <li><kbd>Q</kbd> / <kbd>E</kbd> crouch / tiptoe</li>
+                <li><kbd>Space</kbd> recenter view</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Arrange memories</h3>
+              <ul>
+                <li><kbd>Click</kbd> select, <kbd>drag</kbd> move</li>
+                <li><kbd>Scroll</kbd> raise / lower</li>
+                <li><kbd>R</kbd> rotate, <kbd>[</kbd> <kbd>]</kbd> resize</li>
+                <li><kbd>C</kbd> change colour</li>
+                <li><kbd>Del</kbd> delete fact</li>
+                <li>Click a <b>door</b> or <b>timeline card</b> to open it</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Headset / emulator</h3>
+              <ul>
+                <li>Trigger: grab objects / open doors</li>
+                <li>Left stick: walk</li>
+                <li>Right stick: snap turn</li>
+              </ul>
+              <h3>Panels</h3>
+              <ul>
+                <li><kbd>H</kbd> help &nbsp; <kbd>P</kbd> hide panel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="convo-modal" class="modal" hidden>
+        <div class="modal-card">
+          <button class="modal-close icon">✕</button>
+          <div id="convo-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
