@@ -332,6 +332,47 @@ API: `GET /api/people`, `GET /api/people/:id`, `POST /api/people`,
 | Two FieldAssist entries on the phone | `packageName` was changed; dev entries are keyed by it | Remove the old entry in the Mentra App |
 | `--usb could not establish an ADB tunnel` | `adb` missing or USB debugging off (USB mode is Android only) | `brew install --cask android-platform-tools`, enable USB debugging. If the Mac has a LAN IP the CLI falls back to it (phone must share the Wi-Fi); with no LAN IP it exits. In USB mode `run.sh` bakes `http://127.0.0.1:3100` and keeps `adb reverse tcp:3100 tcp:3100` asserted itself (the CLI only reverses its own two ports); if adb sees no phone it falls back to the Wi-Fi address before building |
 
+## picavoice: remembering people automatically
+
+`XR-Voice-Profiles/picavoice.py` turns the anonymous Deepgram speakers (`S0`, `S1`, ...) into people that are
+remembered across conversations, and keeps what it learns about them in the same `data/fieldassist.sqlite`.
+Run it next to `./run.sh`:
+
+```
+cd XR-Voice-Profiles
+pip install -r requirements.txt     # first time (Python 3.10-3.12 recommended for torch)
+python picavoice.py watch           # Ctrl+C to stop
+```
+
+What it does every 5 s, for each speaker in each session:
+
+1. **Voice**: builds an ECAPA voiceprint from up to 15 s of that speaker's audio (sliced from the session WAV)
+   and compares it with every known person. A confident match (≥ 0.65 and ≥ 0.05 ahead of the runner-up) is
+   that person; audio that matches ≥ 0.70 is folded into their profile (running mean). A clearly different
+   voice (< 0.45, with ≥ 6 s of speech) becomes a new person named `Unknown voice #N`. Anything in between waits
+   for more speech. Profiles enrolled with `voice_profiles.py meet` (profiles.json) are imported automatically.
+2. **Facts**: reads what they said and keeps their name ("my name is Sam", or "nice to meet you, Sam" heard twice
+   from the one other person in the conversation), work, role, study, hometown, where they live, why they are here,
+   and how you met ("we met at the hackathon"). A placeholder person is renamed once their name is known.
+3. **Encounters**: one row per person per conversation: when, where (nearest GPS fix the phone sent), seconds of
+   speech, and a snippet of what they said.
+4. **Reminders**: when someone you have met before is recognised, it prints who they are, how many times and when
+   you met, what you know about them and your last conversation.
+
+Commands: `people` (list), `show <id>`, `rename <id> "Name"`, `me <id>` (mark the wearer's own voice so it is
+never logged as an encounter: do this once after your first session), `merge <dup> <into>`, `forget <id>`
+(deletes their voiceprints, facts and encounters). `once` processes the database a single time.
+
+Tables it adds: `encounters`, `person_facts`, `picavoice_progress`, plus columns on `people` (`embedding`,
+`embedding_count`, `is_placeholder`, `is_me`, `first_met_at`, `last_seen_at`, `times_met`,
+`consent_recorded_at`, `profile_uuid`). Each voice observation is also stored in `voiceprints`, and speaker →
+person decisions go to `speaker_assignments` (method `picavoice-match` / `picavoice-new`).
+Tests: `python -m unittest test_picavoice` (no torch or audio needed).
+
+Voiceprints are biometric data. Automatically created profiles have no consent recorded
+(`consent_recorded_at` is NULL). Check the law where you use this (Illinois BIPA requires written consent before
+collecting voiceprints) and use `forget` for anyone who asks.
+
 ## Project layout
 
 ```

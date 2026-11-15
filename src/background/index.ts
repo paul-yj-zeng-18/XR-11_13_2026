@@ -57,6 +57,7 @@ interface AudioFrame {
 type UplinkEvent =
   | {type: "transcript"; text: string; isFinal: boolean; language?: string; source?: string; t: number}
   | {type: "vad"; speaking: boolean; silentForMs?: number; t: number}
+  | {type: "location"; lat: number; lng: number; accuracy?: number | null; t: number}
   | {type: "ping"; t: number}
   | {type: "end"; reason: string}
 
@@ -294,6 +295,8 @@ registerMiniapp<Channels>((session) => {
   session.location.onUpdate((l: LocationData) => {
     const acc = l.accuracy != null ? ` ±${Math.round(l.accuracy)}m` : ""
     log(`location lat=${l.lat.toFixed(5)} lng=${l.lng.toFixed(5)}${acc}`)
+    // Forwarded so picavoice can remember where a conversation happened.
+    uplink?.event({type: "location", lat: l.lat, lng: l.lng, accuracy: l.accuracy ?? null, t: Date.now()})
   })
 
   session.on("visibility", (v) => log(`visibility ${v}`))

@@ -6,6 +6,7 @@
  *   POST /ingest/hello   {runId, userId, packageName}
  *   POST /ingest/event   {runId, type: "transcript", text, isFinal, language?, source?, t}
  *                        {runId, type: "vad", speaking, silentForMs?, t}
+ *                        {runId, type: "location", lat, lng, accuracy?, t}
  *                        {runId, type: "ping", t}      (heartbeat every few seconds)
  *                        {runId, type: "end", reason}
  *   POST /ingest/audio   {runId, chunks: [{seq, data (base64), sampleRate?, format?, t}, ...]}
@@ -65,6 +66,7 @@ interface AudioFrame {
 type Event =
   | {type: "transcript"; text: string; isFinal: boolean; language?: string; source?: string; t: number}
   | {type: "vad"; speaking: boolean; silentForMs?: number; t: number}
+  | {type: "location"; lat: number; lng: number; accuracy?: number | null; t: number}
   | {type: "ping"; t: number}
   | {type: "end"; reason: string}
 
@@ -340,6 +342,14 @@ function onEvent(run: Run, ev: Event): void {
         log(`cannot store event: ${(err as Error).message}`)
       }
       jsonl(run, {type: "vad", speaking: ev.speaking, silentForMs: ev.silentForMs, phoneT: ev.t})
+      return
+    case "location":
+      try {
+        store.insertEvent(run.runId, "location", ev)
+      } catch (err) {
+        log(`cannot store event: ${(err as Error).message}`)
+      }
+      jsonl(run, {type: "location", lat: ev.lat, lng: ev.lng, accuracy: ev.accuracy, phoneT: ev.t})
       return
     case "ping":
       return // lastSeen was refreshed by runFor()
